@@ -7,7 +7,16 @@ downloads
 tdl
 .hugo_build.lock
 
+# Node.js and build artifacts
 **/node_modules/
+**/dist/
 **/logs/
 *.log
-dist/
+
+# Temporary and build files
+build/
+.cache/
+.vite/
+vite.log
+.DS_Store
+Thumbs.db
