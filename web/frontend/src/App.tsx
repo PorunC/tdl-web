@@ -3,6 +3,7 @@ import { Toaster } from './components/ui/toaster'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import ChatPage from './pages/ChatPage'
 import DownloadPage from './pages/DownloadPage'
 import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
@@ -30,6 +31,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/download" element={<DownloadPage />} />
             <Route path="/upload" element={<UploadPage />} />
             <Route path="/settings" element={<SettingsPage />} />

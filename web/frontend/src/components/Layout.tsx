@@ -12,6 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { to: '/dashboard', label: '仪表板' },
+    { to: '/chat', label: '聊天管理' },
     { to: '/download', label: '下载管理' },
     { to: '/upload', label: '上传管理' },
     { to: '/settings', label: '设置' },
