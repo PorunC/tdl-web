@@ -6,3 +6,6 @@ downloads
 *.exe
 tdl
 .hugo_build.lock
+
+**/node_modules/
+**/logs/

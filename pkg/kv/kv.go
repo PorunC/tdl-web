@@ -69,3 +69,8 @@ func With(ctx context.Context, kv Storage) context.Context {
 func From(ctx context.Context) Storage {
 	return ctx.Value(ctxKey{}).(Storage)
 }
+
+// IsNotFound checks if error is a not found error
+func IsNotFound(err error) bool {
+	return errors.Is(err, storage.ErrNotFound)
+}

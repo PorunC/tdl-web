@@ -66,6 +66,7 @@ github.com/gen2brain/dlgs v0.0.0-20211108104213-bade24837f0b h1:M0/hjawi9ur15zpq
 github.com/gen2brain/dlgs v0.0.0-20211108104213-bade24837f0b/go.mod h1:/eFcjDXaU2THSOOqLxOPETIbHETnamk8FA/hMjhg/gU=
 github.com/getsentry/sentry-go v0.18.0 h1:MtBW5H9QgdcJabtZcuJG80BMOwaBpkRDZkxRkNC1sN0=
 github.com/getsentry/sentry-go v0.18.0/go.mod h1:Kgon4Mby+FJ7ZWHFUAZgVaIa8sxHtnRJRLTXZr51aKQ=
+github.com/gin-gonic/gin v1.9.1/go.mod h1:hPrL7YrpYKXt5YId3A/Tnip5kqbEAP+KLuI3SUcPTeU=
 github.com/go-faster/sdk v0.22.0 h1:s/Pq3lJ00MrHMoEUzeAemPz7kXzfETw2iN6outyOHoY=
 github.com/go-faster/sdk v0.22.0/go.mod h1:UJWFlbuRJHmXJwl4JxStMbbIZtMAz4fxrD4CnuDXCIc=
 github.com/go-jose/go-jose/v3 v3.0.3 h1:fFKWeig/irsp7XD2zBxvnmA/XaRWp5V3CBsZXJF7G7k=
@@ -89,6 +90,7 @@ github.com/googleapis/gax-go/v2 v2.14.1 h1:hb0FFeiPaQskmvakKu5EbCbpntQn48jyHuvrk
 github.com/googleapis/gax-go/v2 v2.14.1/go.mod h1:Hb/NubMaVM88SrNkvl8X/o8XWwDJEPqouaLeN2IUxoA=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 h1:EGx4pi6eqNxGaHF6qqu48+N2wcFQ5qg5FXgOdqsJ5d8=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
+github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gotd/getdoc v0.48.0 h1:oo0C/tNHOwZsuW5egYhrD4XLtlAnz2ubSfz6tdh0FEM=
 github.com/gotd/getdoc v0.48.0/go.mod h1:w5IDi4f2qAfBjk7CmzVKpTRU1/jGSZinwZ2Gxej1XvA=
 github.com/gotd/tl v0.4.0 h1:8k2z0drujiPyhpLDa9PRm/yU1Gwlfn3iUzeInPiXwMA=
@@ -115,8 +117,6 @@ github.com/hashicorp/vault/api v1.12.2 h1:7YkCTE5Ni90TcmYHDBExdt4WGJxhpzaHqR6uGb
 github.com/hashicorp/vault/api v1.12.2/go.mod h1:LSGf1NGT1BnvFFnKVtnvcaLBM2Lz+gJdpL6HUYed8KE=
 github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465 h1:KwWnWVWCNtNq/ewIX7HIKnELmEx2nDP42yskD/pi7QE=
 github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
-github.com/iyear/tdl/core v0.19.1/go.mod h1:hMXFF1FJNqX+jFOLpJdYOWXVrk0Bu8kgziZZAgBPt9g=
-github.com/iyear/tdl/extension v0.19.1/go.mod h1:+hQZGfoGDkkD0pyBUtyIBIrM961DnwieQ1IBFjebxZU=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/k0kubun/pp/v3 v3.4.1 h1:1WdFZDRRqe8UsR61N/2RoOZ3ziTEqgTPVqKrHeb779Y=
