@@ -96,6 +96,15 @@ func (s *Server) setupRoutes() {
 			auth.POST("/logout", authHandler.Logout)
 		}
 
+		// 聊天管理相关
+		chatGroup := apiV1.Group("/chat")
+		{
+			chatHandler := api.NewChatHandler(s.ctx, s.kvd)
+			chatGroup.GET("/list", chatHandler.GetChatList)           // 获取聊天列表
+			chatGroup.POST("/export", chatHandler.ExportChatMessages) // 导出聊天消息
+			chatGroup.POST("/users", chatHandler.ExportChatUsers)     // 导出聊天用户
+		}
+
 		// 简化其他路由，暂时注释掉
 		// TODO: 修复其他处理器的接口兼容性问题
 	}
