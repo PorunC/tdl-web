@@ -38,12 +38,12 @@ interface AuthState {
   logout: () => Promise<void>
   
   // QR登录方法
-  startQRLogin: () => Promise<string>
+  startQRLogin: (proxy?: string) => Promise<string>
   getQRCode: (sessionId: string) => string
   checkQRStatus: (sessionId: string) => Promise<void>
   
   // 验证码登录方法
-  startCodeLogin: (phone: string) => Promise<string>
+  startCodeLogin: (phone: string, proxy?: string) => Promise<string>
   verifyCode: (sessionId: string, code: string) => Promise<void>
   
   // 2FA密码验证
@@ -97,10 +97,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      startQRLogin: async () => {
+      startQRLogin: async (proxy?: string) => {
         set({ isLoading: true, loginSession: null })
         try {
-          const response = await ApiService.startQRLogin()
+          const response = await ApiService.startQRLogin(proxy)
           const sessionId = response.data.data.session_id
           
           set({
@@ -163,10 +163,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      startCodeLogin: async (phone: string) => {
+      startCodeLogin: async (phone: string, proxy?: string) => {
         set({ isLoading: true, loginSession: null })
         try {
-          const response = await ApiService.startCodeLogin(phone)
+          const response = await ApiService.startCodeLogin(phone, proxy)
           const sessionId = response.data.data.session_id
           
           set({

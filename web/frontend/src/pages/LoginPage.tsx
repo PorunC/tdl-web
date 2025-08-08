@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuthStore, LoginStatus } from '@/store/authStore'
 import { toast } from '@/components/ui/use-toast'
-import { QrCode, Phone, KeyRound } from 'lucide-react'
+import { QrCode, Phone, KeyRound, ChevronDown, ChevronRight, Settings } from 'lucide-react'
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('qr')
@@ -14,6 +14,8 @@ const LoginPage = () => {
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [proxyUrl, setProxyUrl] = useState('')
 
   const {
     isLoading,
@@ -26,6 +28,23 @@ const LoginPage = () => {
     verifyPassword,
     clearSession
   } = useAuthStore()
+
+  // 初始化时从localStorage读取代理设置
+  useEffect(() => {
+    const savedProxy = localStorage.getItem('tdl-proxy-url')
+    if (savedProxy) {
+      setProxyUrl(savedProxy)
+    }
+  }, [])
+
+  // 保存代理设置到localStorage
+  useEffect(() => {
+    if (proxyUrl) {
+      localStorage.setItem('tdl-proxy-url', proxyUrl)
+    } else {
+      localStorage.removeItem('tdl-proxy-url')
+    }
+  }, [proxyUrl])
 
   // QR登录状态轮询
   useEffect(() => {
@@ -84,7 +103,7 @@ const LoginPage = () => {
 
   const handleQRLogin = async () => {
     try {
-      await startQRLogin()
+      await startQRLogin(proxyUrl.trim() || undefined)
     } catch (error) {
       toast({
         title: "启动失败",
@@ -105,7 +124,7 @@ const LoginPage = () => {
     }
     
     try {
-      await startCodeLogin(phone.trim())
+      await startCodeLogin(phone.trim(), proxyUrl.trim() || undefined)
     } catch (error) {
       toast({
         title: "发送失败",
@@ -288,7 +307,8 @@ const LoginPage = () => {
             </div>
           ) : (
             // 主登录界面
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="space-y-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="qr">
                   <QrCode className="h-4 w-4 mr-2" />
@@ -383,6 +403,43 @@ const LoginPage = () => {
                 </p>
               </TabsContent>
             </Tabs>
+            
+            {/* 高级设置 */}
+            <div className="mt-4 border-t pt-4">
+              <Button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                variant="ghost"
+                className="w-full flex items-center justify-center space-x-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Settings className="h-4 w-4" />
+                <span>高级设置</span>
+                {showAdvanced ? 
+                  <ChevronDown className="h-4 w-4" /> : 
+                  <ChevronRight className="h-4 w-4" />
+                }
+              </Button>
+              
+              {showAdvanced && (
+                <div className="mt-3 space-y-3 p-3 bg-muted/50 rounded-md">
+                  <div className="space-y-2">
+                    <Label htmlFor="proxy" className="text-xs">网络代理 (可选)</Label>
+                    <Input
+                      id="proxy"
+                      type="text"
+                      value={proxyUrl}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProxyUrl(e.target.value)}
+                      placeholder="http://192.168.96.1:7890"
+                      className="text-xs"
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      支持 HTTP/HTTPS/SOCKS5 代理，留空则直连
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            </div>
           )}
           
           {loginSession?.status && (

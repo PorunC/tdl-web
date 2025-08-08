@@ -50,9 +50,16 @@ func (h *AuthHandler) GetStatus(c *gin.Context) {
 
 // StartQRLogin 开始二维码登录
 func (h *AuthHandler) StartQRLogin(c *gin.Context) {
+	var req struct {
+		Proxy string `json:"proxy"`
+	}
+
+	// 绑定JSON请求，但代理是可选的，所以即使失败也继续
+	c.ShouldBindJSON(&req)
+
 	sessionID := uuid.New().String()
 	
-	session, err := h.authService.StartQRLogin(sessionID)
+	session, err := h.authService.StartQRLogin(sessionID, req.Proxy)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, fmt.Errorf("start qr login: %v", err))
 		return
@@ -124,6 +131,7 @@ func (h *AuthHandler) CheckQRStatus(c *gin.Context) {
 func (h *AuthHandler) StartCodeLogin(c *gin.Context) {
 	var req struct {
 		Phone string `json:"phone" binding:"required"`
+		Proxy string `json:"proxy"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -133,7 +141,7 @@ func (h *AuthHandler) StartCodeLogin(c *gin.Context) {
 
 	sessionID := uuid.New().String()
 
-	session, err := h.authService.StartCodeLogin(sessionID, req.Phone)
+	session, err := h.authService.StartCodeLogin(sessionID, req.Phone, req.Proxy)
 	if err != nil {
 		Error(c, http.StatusInternalServerError, fmt.Errorf("start code login: %v", err))
 		return

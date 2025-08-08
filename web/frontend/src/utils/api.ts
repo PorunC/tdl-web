@@ -42,16 +42,16 @@ export class ApiService {
     return api.get('/auth/status')
   }
 
-  static async startQRLogin() {
-    return api.post('/auth/qr/start')
+  static async startQRLogin(proxy?: string) {
+    return api.post('/auth/qr/start', proxy ? { proxy } : {})
   }
 
   static async checkQRStatus(sessionId: string) {
     return api.get(`/auth/qr/status/${sessionId}`)
   }
 
-  static async startCodeLogin(phone: string) {
-    return api.post('/auth/code/start', { phone })
+  static async startCodeLogin(phone: string, proxy?: string) {
+    return api.post('/auth/code/start', proxy ? { phone, proxy } : { phone })
   }
 
   static async verifyCode(sessionId: string, code: string) {

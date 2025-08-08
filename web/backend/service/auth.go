@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -43,6 +42,7 @@ type LoginSession struct {
 	UserInfo     *UserInfo
 	NeedPassword bool
 	PasswordChan chan string // 用于2FA密码传递的通道
+	ProxyURL     string      // 会话级别的代理配置
 }
 
 // LoginType 登录类型
@@ -87,17 +87,6 @@ func NewAuthService(ctx context.Context, kvStore kv.Storage) *AuthService {
 	return service
 }
 
-// getProxyURL 获取代理配置
-func (s *AuthService) getProxyURL() string {
-	// 优先使用环境变量 TDL_PROXY
-	if proxy := os.Getenv("TDL_PROXY"); proxy != "" {
-		return proxy
-	}
-	
-	// 默认代理地址（可以根据需要修改）
-	return "http://192.168.96.1:7890"
-}
-
 // IsAuthenticated 检查是否已认证
 func (s *AuthService) IsAuthenticated(userID string) (bool, *UserInfo, error) {
 	ns, err := s.kvStore.Open(fmt.Sprintf("user_%s", userID))
@@ -134,7 +123,7 @@ func (s *AuthService) IsAuthenticated(userID string) (bool, *UserInfo, error) {
 }
 
 // StartQRLogin 开始二维码登录
-func (s *AuthService) StartQRLogin(sessionID string) (*LoginSession, error) {
+func (s *AuthService) StartQRLogin(sessionID, proxyURL string) (*LoginSession, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -149,6 +138,7 @@ func (s *AuthService) StartQRLogin(sessionID string) (*LoginSession, error) {
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 		PasswordChan: make(chan string, 1), // 初始化密码通道
+		ProxyURL:     proxyURL,             // 存储代理配置
 	}
 
 	s.sessions[sessionID] = session
@@ -157,7 +147,7 @@ func (s *AuthService) StartQRLogin(sessionID string) (*LoginSession, error) {
 }
 
 // StartCodeLogin 开始验证码登录
-func (s *AuthService) StartCodeLogin(sessionID, phone string) (*LoginSession, error) {
+func (s *AuthService) StartCodeLogin(sessionID, phone, proxyURL string) (*LoginSession, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -166,12 +156,14 @@ func (s *AuthService) StartCodeLogin(sessionID, phone string) (*LoginSession, er
 	}
 
 	session := &LoginSession{
-		ID:        sessionID,
-		Type:      LoginTypeCode,
-		Status:    StatusInitializing,
-		Phone:     phone,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:           sessionID,
+		Type:         LoginTypeCode,
+		Status:       StatusInitializing,
+		Phone:        phone,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+		PasswordChan: make(chan string, 1), // 初始化密码通道
+		ProxyURL:     proxyURL,             // 存储代理配置
 	}
 
 	s.sessions[sessionID] = session
@@ -270,7 +262,7 @@ func (s *AuthService) processQRLogin(session *LoginSession) {
 	client, err := tclient.New(ctx, tclient.Options{
 		KV:            ns,
 		UpdateHandler: d,
-		Proxy:         s.getProxyURL(), // 使用配置的代理
+		Proxy:         session.ProxyURL, // 使用会话中的代理配置
 	}, true) // 登录模式
 	
 	if err != nil {
