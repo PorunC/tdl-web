@@ -10,3 +10,4 @@ tdl
 **/node_modules/
 **/logs/
 *.log
+dist/
