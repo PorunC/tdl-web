@@ -5,6 +5,7 @@ log
 downloads
 *.exe
 tdl
+tdl-web
 .hugo_build.lock
 
 # Node.js and build artifacts
