@@ -53,6 +53,14 @@ func ValidationError(c *gin.Context, message string) {
 	})
 }
 
+// 内部服务器错误响应
+func InternalServerError(c *gin.Context, message string) {
+	c.JSON(http.StatusInternalServerError, Response{
+		Success: false,
+		Error:   message,
+	})
+}
+
 // 获取分页参数
 func GetPagination(c *gin.Context) (offset, limit int) {
 	// 简化实现

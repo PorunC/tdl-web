@@ -56,8 +56,11 @@ go run main.go dl --help
 
 ### Web Interface Development
 ```bash
-# Start full development environment (frontend + backend)
+# Linux/macOS - Start full development environment (frontend + backend)
 ./scripts/dev-web.sh
+
+# Windows - Start full development environment (frontend + backend)  
+.\scripts\dev-web.ps1
 
 # Frontend only (React dev server)
 cd web/frontend && npm run dev
@@ -65,11 +68,17 @@ cd web/frontend && npm run dev
 # Backend only (API server)
 go run main.go web --port 8080 --debug
 
-# Build production web interface
+# Linux/macOS - Build production web interface
 ./scripts/build-web.sh
 
-# Test web API endpoints
+# Windows - Build production web interface
+.\scripts\build-web.ps1
+
+# Linux/macOS - Test web API endpoints
 ./scripts/test-web.sh
+
+# Windows - Test web API endpoints
+.\scripts\test-web.ps1
 ```
 
 ### Testing
@@ -86,8 +95,11 @@ go test ./test/...
 # Run tests with verbose output
 go test -v ./...
 
-# Frontend tests
+# Frontend tests  
 cd web/frontend && npm test
+
+# Frontend linting
+cd web/frontend && npm run lint
 ```
 
 ### Working with Go Workspace

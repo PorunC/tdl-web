@@ -117,6 +117,53 @@ export class ApiService {
     return api.delete(`/upload/tasks/${taskId}`)
   }
 
+  // 聊天管理相关
+  static async getChatList(options?: {
+    filter?: string
+    output?: string
+    page?: number
+    limit?: number
+    search?: string
+  }) {
+    const params: any = {
+      filter: options?.filter || 'true',
+      output: options?.output || 'json'
+    }
+    
+    if (options?.page && options.page > 0) {
+      params.page = options.page
+    }
+    if (options?.limit && options.limit > 0) {
+      params.limit = options.limit
+    }
+    if (options?.search) {
+      params.search = options.search
+    }
+    
+    return api.get('/chat/list', { params })
+  }
+
+  static async exportChatMessages(data: {
+    type: 'time' | 'id' | 'last'
+    chat: string
+    thread?: number
+    input: number[]
+    filter?: string
+    only_media?: boolean
+    with_content?: boolean
+    raw?: boolean
+    all?: boolean
+  }) {
+    return api.post('/chat/export', data)
+  }
+
+  static async exportChatUsers(data: {
+    chat: string
+    raw?: boolean
+  }) {
+    return api.post('/chat/users', data)
+  }
+
   // 设置相关
   static async getSettings() {
     return api.get('/settings')

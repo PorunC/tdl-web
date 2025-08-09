@@ -21,3 +21,8 @@ build/
 vite.log
 .DS_Store
 Thumbs.db
+
+tdl-*
+nul
+test_*
+.claude/

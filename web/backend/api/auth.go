@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/iyear/tdl/pkg/kv"
 	"github.com/iyear/tdl/web/backend/service"
+	"github.com/iyear/tdl/web/backend/util"
 	"github.com/iyear/tdl/web/backend/websocket"
 )
 
@@ -57,7 +57,8 @@ func (h *AuthHandler) StartQRLogin(c *gin.Context) {
 	// 绑定JSON请求，但代理是可选的，所以即使失败也继续
 	c.ShouldBindJSON(&req)
 
-	sessionID := uuid.New().String()
+	// 使用客户端IP作为sessionID，保持一致性
+	sessionID := h.getClientID(c)
 	
 	session, err := h.authService.StartQRLogin(sessionID, req.Proxy)
 	if err != nil {
@@ -139,7 +140,8 @@ func (h *AuthHandler) StartCodeLogin(c *gin.Context) {
 		return
 	}
 
-	sessionID := uuid.New().String()
+	// 使用客户端IP作为sessionID，保持一致性
+	sessionID := h.getClientID(c)
 
 	session, err := h.authService.StartCodeLogin(sessionID, req.Phone, req.Proxy)
 	if err != nil {
@@ -212,12 +214,23 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	SuccessWithMessage(c, nil, "Logged out successfully")
 }
 
-// getUserID 获取用户ID，这里简化为使用IP地址作为用户标识
-// 实际应用中应该使用更安全的用户标识方案
+// getUserID 获取用户ID，优先使用Telegram ID，回退到安全的客户端IP
 func (h *AuthHandler) getUserID(c *gin.Context) string {
-	// 简化实现：使用客户端IP作为用户ID
-	// 实际应用中应该使用JWT token或其他认证机制
-	return c.ClientIP()
+	// 获取安全的客户端标识符
+	clientID := h.getClientID(c)
+	// 尝试获取Telegram ID
+	telegramID, err := h.authService.GetAuthenticatedTelegramID(clientID)
+	if err == nil {
+		return fmt.Sprintf("%d", telegramID)
+	}
+	
+	// 回退到使用安全的客户端IP
+	return clientID
+}
+
+// getClientID 获取文件系统安全的客户端标识符
+func (h *AuthHandler) getClientID(c *gin.Context) string {
+	return util.SafeClientID(c.ClientIP())
 }
 
 // monitorSessionStatus 监控会话状态变化并推送WebSocket消息

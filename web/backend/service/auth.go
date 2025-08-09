@@ -13,7 +13,9 @@ import (
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
 	"github.com/skip2/go-qrcode"
+	"go.uber.org/zap"
 
+	"github.com/iyear/tdl/core/logctx"
 	"github.com/iyear/tdl/pkg/key"
 	"github.com/iyear/tdl/pkg/kv"
 	"github.com/iyear/tdl/pkg/tclient"
@@ -120,6 +122,40 @@ func (s *AuthService) IsAuthenticated(userID string) (bool, *UserInfo, error) {
 	}
 
 	return true, &userInfo, nil
+}
+
+// GetAuthenticatedTelegramID 获取已认证用户的Telegram ID
+func (s *AuthService) GetAuthenticatedTelegramID(clientID string) (int64, error) {
+	// 查找客户端到Telegram ID的映射
+	mappingNS, err := s.kvStore.Open("client_mapping")
+	if err != nil {
+		return 0, errors.Wrap(err, "open client mapping storage")
+	}
+
+	telegramIDData, err := mappingNS.Get(context.Background(), clientID)
+	if err != nil {
+		if kv.IsNotFound(err) {
+			return 0, errors.New("client not authenticated")
+		}
+		return 0, errors.Wrap(err, "get telegram id")
+	}
+
+	var telegramID int64
+	if err := json.Unmarshal(telegramIDData, &telegramID); err != nil {
+		return 0, errors.Wrap(err, "unmarshal telegram id")
+	}
+
+	// 验证该Telegram用户确实已认证
+	authenticated, _, err := s.IsAuthenticated(fmt.Sprintf("%d", telegramID))
+	if err != nil {
+		return 0, errors.Wrap(err, "check authentication status")
+	}
+
+	if !authenticated {
+		return 0, errors.New("telegram user not authenticated")
+	}
+
+	return telegramID, nil
 }
 
 // StartQRLogin 开始二维码登录
@@ -378,6 +414,11 @@ func (s *AuthService) completeLoginInClient(ctx context.Context, session *LoginS
 	// 保存用户信息到存储
 	s.saveUserInfo(session.ID, userInfo)
 
+	// 复制会话数据到用户命名空间，确保与Chat API兼容
+	if err := s.syncSessionToUserNamespace(session.ID, userInfo.ID); err != nil {
+		logctx.From(ctx).Error("Failed to sync session to user namespace", zap.Error(err))
+	}
+
 	s.mu.Lock()
 	session.Status = StatusCompleted
 	session.UserInfo = userInfo
@@ -460,6 +501,53 @@ func (s *AuthService) saveUserInfo(sessionID string, userInfo *UserInfo) {
 	userInfoJSON, _ := json.Marshal(userInfo)
 	ns.Set(context.Background(), "user_info", userInfoJSON)
 	ns.Set(context.Background(), "session", []byte("established"))
+
+	// 保存客户端到Telegram ID的映射
+	s.saveClientMapping(sessionID, userInfo.ID)
+}
+
+// saveClientMapping 保存客户端到Telegram ID的映射
+func (s *AuthService) saveClientMapping(clientID string, telegramID int64) {
+	mappingNS, err := s.kvStore.Open("client_mapping")
+	if err != nil {
+		return
+	}
+
+	telegramIDJSON, _ := json.Marshal(telegramID)
+	mappingNS.Set(context.Background(), clientID, telegramIDJSON)
+}
+
+// syncSessionToUserNamespace 同步会话数据到用户命名空间
+func (s *AuthService) syncSessionToUserNamespace(sessionID string, telegramID int64) error {
+	// 从会话命名空间读取Telegram会话数据
+	sessionNS, err := s.kvStore.Open(fmt.Sprintf("session_%s", sessionID))
+	if err != nil {
+		return errors.Wrap(err, "open session namespace")
+	}
+
+	// 读取实际的Telegram会话数据
+	sessionData, err := sessionNS.Get(context.Background(), "session")
+	if err != nil && !kv.IsNotFound(err) {
+		return errors.Wrap(err, "get session data")
+	}
+
+	// 如果没有真正的会话数据，跳过同步
+	if len(sessionData) == 0 {
+		return nil
+	}
+
+	// 复制到用户命名空间
+	userNS, err := s.kvStore.Open(fmt.Sprintf("user_%d", telegramID))
+	if err != nil {
+		return errors.Wrap(err, "open user namespace")
+	}
+
+	// 保存真正的Telegram会话数据
+	if err := userNS.Set(context.Background(), "session", sessionData); err != nil {
+		return errors.Wrap(err, "save session data to user namespace")
+	}
+
+	return nil
 }
 
 // GetQRCode 生成QR码图像

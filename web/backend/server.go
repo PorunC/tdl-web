@@ -105,6 +105,15 @@ func (s *Server) setupRoutes() {
 			chatGroup.POST("/users", chatHandler.ExportChatUsers)     // 导出聊天用户
 		}
 
+		// 设置相关
+		settingsGroup := apiV1.Group("/settings")
+		{
+			settingsHandler := api.NewSettingsHandler(s.ctx, s.kvd)
+			settingsGroup.GET("/", settingsHandler.GetSettings)       // 获取设置
+			settingsGroup.PUT("/", settingsHandler.UpdateSettings)    // 更新设置
+			settingsGroup.POST("/reset", settingsHandler.ResetSettings) // 重置设置
+		}
+
 		// 简化其他路由，暂时注释掉
 		// TODO: 修复其他处理器的接口兼容性问题
 	}
