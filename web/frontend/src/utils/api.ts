@@ -143,6 +143,10 @@ export class ApiService {
     return api.get('/chat/list', { params })
   }
 
+  static async getDefaultDownloadPath() {
+    return api.get('/chat/default-path')
+  }
+
   static async exportChatMessages(data: {
     type: 'time' | 'id' | 'last'
     chat: string
@@ -153,6 +157,7 @@ export class ApiService {
     with_content?: boolean
     raw?: boolean
     all?: boolean
+    output_path?: string
   }) {
     return api.post('/chat/export', data)
   }
@@ -160,6 +165,7 @@ export class ApiService {
   static async exportChatUsers(data: {
     chat: string
     raw?: boolean
+    output_path?: string
   }) {
     return api.post('/chat/users', data)
   }

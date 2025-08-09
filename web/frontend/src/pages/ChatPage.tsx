@@ -30,11 +30,13 @@ interface ChatExportRequest {
   with_content?: boolean
   raw?: boolean
   all?: boolean
+  output_path?: string
 }
 
 interface ChatUsersRequest {
   chat: string
   raw?: boolean
+  output_path?: string
 }
 
 const ChatPage = () => {
@@ -57,9 +59,15 @@ const ChatPage = () => {
   const [exportFilter, setExportFilter] = useState('true')
   const [withContent, setWithContent] = useState(false)
   const [allMessages, setAllMessages] = useState(false)
+  const [exportOutputPath, setExportOutputPath] = useState('')
 
   // Users export states
   const [usersChat, setUsersChat] = useState('')
+  const [usersOutputPath, setUsersOutputPath] = useState('')
+  
+  // 默认下载路径
+  const [defaultPath, setDefaultPath] = useState('')
+  const [pathLoading, setPathLoading] = useState(false)
   
   // Tab状态管理
   const [activeTab, setActiveTab] = useState('list')
@@ -69,7 +77,26 @@ const ChatPage = () => {
 
   useEffect(() => {
     fetchChatList(1, searchTerm) // 初始加载页面从第1页开始
+    fetchDefaultPath() // 获取默认下载路径
   }, [])
+
+  const fetchDefaultPath = async () => {
+    try {
+      setPathLoading(true)
+      const response = await ApiService.getDefaultDownloadPath()
+      if (response.data.success) {
+        const path = response.data.data.default_path
+        setDefaultPath(path)
+        // 设置默认路径为默认值
+        setExportOutputPath(path)
+        setUsersOutputPath(path)
+      }
+    } catch (error: any) {
+      console.warn('获取默认下载路径失败:', error.response?.data?.message || error.message)
+    } finally {
+      setPathLoading(false)
+    }
+  }
 
   // 搜索防抖
   useEffect(() => {
@@ -178,7 +205,8 @@ const ChatPage = () => {
       input: inputArray,
       filter: exportFilter,
       with_content: withContent,
-      all: allMessages
+      all: allMessages,
+      output_path: exportOutputPath || undefined
     }
 
     if (exportThread) {
@@ -219,7 +247,8 @@ const ChatPage = () => {
     }
 
     const request: ChatUsersRequest = {
-      chat: usersChat
+      chat: usersChat,
+      output_path: usersOutputPath || undefined
     }
 
     try {
@@ -516,23 +545,39 @@ const ChatPage = () => {
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={withContent}
-                    onChange={(e) => setWithContent(e.target.checked)}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="exportOutputPath">下载路径</Label>
+                  <Input
+                    id="exportOutputPath"
+                    value={exportOutputPath}
+                    onChange={(e) => setExportOutputPath(e.target.value)}
+                    placeholder={pathLoading ? '加载中...' : defaultPath || '请输入下载路径'}
+                    disabled={pathLoading}
                   />
-                  <span>包含消息内容</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={allMessages}
-                    onChange={(e) => setAllMessages(e.target.checked)}
-                  />
-                  <span>导出所有消息</span>
-                </label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    默认路径: {defaultPath || '未知'}
+                  </p>
+                </div>
+                
+                <div className="flex gap-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={withContent}
+                      onChange={(e) => setWithContent(e.target.checked)}
+                    />
+                    <span>包含消息内容</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={allMessages}
+                      onChange={(e) => setAllMessages(e.target.checked)}
+                    />
+                    <span>导出所有消息</span>
+                  </label>
+                </div>
               </div>
 
               <Button onClick={handleExportMessages} className="w-full">
@@ -564,6 +609,20 @@ const ChatPage = () => {
                 />
                 <p className="text-sm text-muted-foreground mt-1">
                   只支持频道和群组，不支持私聊
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="usersOutputPath">下载路径</Label>
+                <Input
+                  id="usersOutputPath"
+                  value={usersOutputPath}
+                  onChange={(e) => setUsersOutputPath(e.target.value)}
+                  placeholder={pathLoading ? '加载中...' : defaultPath || '请输入下载路径'}
+                  disabled={pathLoading}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  默认路径: {defaultPath || '未知'}
                 </p>
               </div>
 

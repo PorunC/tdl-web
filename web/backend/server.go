@@ -101,6 +101,7 @@ func (s *Server) setupRoutes() {
 		{
 			chatHandler := api.NewChatHandler(s.ctx, s.kvd)
 			chatGroup.GET("/list", chatHandler.GetChatList)           // 获取聊天列表
+			chatGroup.GET("/default-path", chatHandler.GetDefaultDownloadPath) // 获取默认下载路径
 			chatGroup.POST("/export", chatHandler.ExportChatMessages) // 导出聊天消息
 			chatGroup.POST("/users", chatHandler.ExportChatUsers)     // 导出聊天用户
 		}

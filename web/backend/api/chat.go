@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -119,12 +120,14 @@ type ChatExportRequest struct {
 	WithContent bool   `json:"with_content,omitempty"`         // 包含内容
 	Raw         bool   `json:"raw,omitempty"`                  // 原始数据
 	All         bool   `json:"all,omitempty"`                  // 所有消息
+	OutputPath  string `json:"output_path,omitempty"`          // 自定义输出路径
 }
 
 // ChatUsersRequest 用户导出请求
 type ChatUsersRequest struct {
-	Chat string `json:"chat" binding:"required"` // 聊天ID或域名
-	Raw  bool   `json:"raw,omitempty"`           // 原始数据
+	Chat       string `json:"chat" binding:"required"` // 聊天ID或域名
+	Raw        bool   `json:"raw,omitempty"`           // 原始数据
+	OutputPath string `json:"output_path,omitempty"`  // 自定义输出路径
 }
 
 // Dialog 聊天对话结构（模拟数据）
@@ -547,8 +550,14 @@ func (h *ChatHandler) ExportChatMessages(c *gin.Context) {
 		return
 	}
 
-	// 生成输出文件名
-	outputFile := filepath.Join(os.TempDir(), fmt.Sprintf("tdl-export-%d.json", time.Now().Unix()))
+	// 生成输出文件路径
+	defaultFilename := fmt.Sprintf("tdl-export-%d.json", time.Now().Unix())
+	outputFile, err := h.createOutputPath(req.OutputPath, defaultFilename)
+	if err != nil {
+		logctx.From(h.ctx).Error("Failed to create output path", zap.Error(err))
+		InternalServerError(c, "Failed to create output directory")
+		return
+	}
 
 	// 设置默认值
 	if req.Filter == "" {
@@ -640,8 +649,14 @@ func (h *ChatHandler) ExportChatUsers(c *gin.Context) {
 		return
 	}
 
-	// 生成输出文件名
-	outputFile := filepath.Join(os.TempDir(), fmt.Sprintf("tdl-users-%d.json", time.Now().Unix()))
+	// 生成输出文件路径
+	defaultFilename := fmt.Sprintf("tdl-users-%d.json", time.Now().Unix())
+	outputFile, err := h.createOutputPath(req.OutputPath, defaultFilename)
+	if err != nil {
+		logctx.From(h.ctx).Error("Failed to create output path", zap.Error(err))
+		InternalServerError(c, "Failed to create output directory")
+		return
+	}
 
 	// 构建用户导出选项
 	usersOpts := chat.UsersOptions{
@@ -709,4 +724,62 @@ func (h *ChatHandler) applySearchFilter(dialogs []*chat.Dialog, search string) [
 	}
 	
 	return filtered
+}
+
+// getDefaultDownloadPath 获取默认下载路径
+func (h *ChatHandler) getDefaultDownloadPath() string {
+	if runtime.GOOS == "windows" {
+		// Windows系统，尝试优先使用Download文件夹
+		if userProfile := os.Getenv("USERPROFILE"); userProfile != "" {
+			downloadPath := filepath.Join(userProfile, "Downloads")
+			if info, err := os.Stat(downloadPath); err == nil && info.IsDir() {
+				return downloadPath
+			}
+		}
+		// 如果找不到Download文件夹，使用用户主目录
+		if userProfile := os.Getenv("USERPROFILE"); userProfile != "" {
+			return userProfile
+		}
+	} else {
+		// Linux/macOS系统，尝试优先使用Download文件夹
+		if homeDir := os.Getenv("HOME"); homeDir != "" {
+			downloadPath := filepath.Join(homeDir, "Downloads")
+			if info, err := os.Stat(downloadPath); err == nil && info.IsDir() {
+				return downloadPath
+			}
+			// 如果找不到Download文件夹，使用用户主目录
+			return homeDir
+		}
+	}
+	// 如果都找不到，使用系统临时目录
+	return os.TempDir()
+}
+
+// createOutputPath 创建输出路径，如果路径不存在则创建
+func (h *ChatHandler) createOutputPath(customPath, defaultFilename string) (string, error) {
+	var basePath string
+	if customPath != "" {
+		// 使用用户指定的路径
+		basePath = customPath
+	} else {
+		// 使用默认路径
+		basePath = h.getDefaultDownloadPath()
+	}
+
+	// 确保目录存在
+	if err := os.MkdirAll(basePath, 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory %s: %w", basePath, err)
+	}
+
+	// 生成完整的文件路径
+	return filepath.Join(basePath, defaultFilename), nil
+}
+
+// GetDefaultDownloadPath 获取默认下载路径
+func (h *ChatHandler) GetDefaultDownloadPath(c *gin.Context) {
+	defaultPath := h.getDefaultDownloadPath()
+	Success(c, map[string]interface{}{
+		"default_path": defaultPath,
+		"platform":    runtime.GOOS,
+	})
 }
