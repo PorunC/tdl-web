@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
-import { api } from '@/utils/api'
+import { ApiService } from '@/utils/api'
 
 interface Dialog {
   id: number
@@ -42,6 +42,11 @@ const ChatPage = () => {
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('true')
   const [selectedChat, setSelectedChat] = useState<Dialog | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [pageSize, setPageSize] = useState(50)
   const { toast } = useToast()
 
   // Export form states
@@ -55,21 +60,54 @@ const ChatPage = () => {
 
   // Users export states
   const [usersChat, setUsersChat] = useState('')
+  
+  // Tab状态管理
+  const [activeTab, setActiveTab] = useState('list')
+  
+  // 用于跟踪是否是首次渲染
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
-    fetchChatList()
+    fetchChatList(1, searchTerm) // 初始加载页面从第1页开始
   }, [])
 
-  const fetchChatList = async () => {
+  // 搜索防抖
+  useEffect(() => {
+    // 跳过首次渲染，避免重复API调用
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
+    const timer = setTimeout(() => {
+      setCurrentPage(1)
+      fetchChatList(1, searchTerm)
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const fetchChatList = async (page: number = currentPage, search: string = searchTerm) => {
     try {
       setLoading(true)
-      const response = await api.get('/api/v1/chat/list', {
-        params: { filter, output: 'json' }
+      const response = await ApiService.getChatList({
+        filter,
+        output: 'json',
+        page,
+        limit: pageSize,
+        search: search.trim() || undefined
       })
       
       if (response.data.success) {
-        setDialogs(response.data.data)
+        // 确保 data.data 是数组，如果不是则使用空数组
+        const dialogsData = Array.isArray(response.data.data.data) ? response.data.data.data : []
+        setDialogs(dialogsData)
+        setTotalCount(response.data.data.total_count || 0)
+        setTotalPages(response.data.data.total_pages || 1)
+        setCurrentPage(response.data.data.page || 1)
       } else {
+        // API 调用成功但业务逻辑失败，确保 dialogs 为空数组
+        setDialogs([])
         toast({
           title: '获取聊天列表失败',
           description: response.data.message,
@@ -77,6 +115,8 @@ const ChatPage = () => {
         })
       }
     } catch (error: any) {
+      // 发生异常时确保 dialogs 为空数组
+      setDialogs([])
       toast({
         title: '获取聊天列表失败',
         description: error.response?.data?.message || '网络错误',
@@ -85,6 +125,17 @@ const ChatPage = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    fetchChatList(page, searchTerm)
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size)
+    setCurrentPage(1)
+    fetchChatList(1, searchTerm)
   }
 
   const handleExportMessages = async () => {
@@ -135,7 +186,7 @@ const ChatPage = () => {
     }
 
     try {
-      const response = await api.post('/api/v1/chat/export', request)
+      const response = await ApiService.exportChatMessages(request)
       if (response.data.success) {
         toast({
           title: '导出任务已提交',
@@ -172,7 +223,7 @@ const ChatPage = () => {
     }
 
     try {
-      const response = await api.post('/api/v1/chat/users', request)
+      const response = await ApiService.exportChatUsers(request)
       if (response.data.success) {
         toast({
           title: '用户导出任务已提交',
@@ -217,7 +268,7 @@ const ChatPage = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">聊天列表</TabsTrigger>
           <TabsTrigger value="export">导出消息</TabsTrigger>
@@ -229,20 +280,48 @@ const ChatPage = () => {
           <Card>
             <CardHeader>
               <CardTitle>聊天列表</CardTitle>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="filter">过滤表达式</Label>
-                  <Input
-                    id="filter"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    placeholder="输入过滤条件（例如：Type == 'private'）"
-                  />
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="search">搜索聊天</Label>
+                    <Input
+                      id="search"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="搜索名称、用户名或ID..."
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="filter">过滤表达式</Label>
+                    <Input
+                      id="filter"
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                      placeholder="输入过滤条件（例如：Type == 'private'）"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <Label htmlFor="pageSize">每页条数</Label>
+                    <select
+                      id="pageSize"
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button onClick={() => fetchChatList(currentPage, searchTerm)} disabled={loading}>
+                      {loading ? '加载中...' : '刷新'}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-end">
-                  <Button onClick={fetchChatList} disabled={loading}>
-                    {loading ? '加载中...' : '刷新'}
-                  </Button>
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>共 {totalCount} 条记录，第 {currentPage} / {totalPages} 页</span>
                 </div>
               </div>
             </CardHeader>
@@ -260,7 +339,7 @@ const ChatPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {dialogs.map((dialog) => (
+                    {Array.isArray(dialogs) && dialogs.map((dialog) => (
                       <tr key={dialog.id} className="border-b hover:bg-muted/50">
                         <td className="p-2 font-mono text-sm">{dialog.id}</td>
                         <td className="p-2">
@@ -276,28 +355,87 @@ const ChatPage = () => {
                         <td className="p-2 font-mono text-sm">{dialog.username || '-'}</td>
                         <td className="p-2 text-sm">{formatTopics(dialog.topics)}</td>
                         <td className="p-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedChat(dialog)
-                              setExportChat(dialog.username || dialog.id.toString())
-                              setUsersChat(dialog.username || dialog.id.toString())
-                            }}
-                          >
-                            选择
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedChat(dialog)
+                                setExportChat(dialog.username || dialog.id.toString())
+                                setActiveTab('export') // 跳转到导出消息标签页
+                              }}
+                            >
+                              导出消息
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedChat(dialog)
+                                setUsersChat(dialog.username || dialog.id.toString())
+                                setActiveTab('users') // 跳转到导出用户标签页
+                              }}
+                            >
+                              导出用户
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {dialogs.length === 0 && !loading && (
+                {(!Array.isArray(dialogs) || dialogs.length === 0) && !loading && (
                   <div className="text-center py-8 text-muted-foreground">
-                    暂无聊天数据
+                    {searchTerm ? '未找到匹配的聊天' : '暂无聊天数据'}
                   </div>
                 )}
               </div>
+              
+              {/* 分页控件 */}
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    显示第 {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalCount)} 条，共 {totalCount} 条
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handlePageChange(1)}
+                      disabled={currentPage === 1 || loading}
+                    >
+                      首页
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1 || loading}
+                    >
+                      上一页
+                    </Button>
+                    <span className="px-3 py-1 text-sm">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages || loading}
+                    >
+                      下一页
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={currentPage === totalPages || loading}
+                    >
+                      末页
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
