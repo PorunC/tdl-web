@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -169,8 +171,14 @@ func (h *ChatHandler) GetChatList(c *gin.Context) {
 		req.Limit = 200 // 最大200条，防止过大
 	}
 
-	// 使用安全的客户端IP获取用户命名空间
-	clientID := util.SafeClientID(c.ClientIP())
+	// 优化客户端识别机制：优先使用session，回退到IP
+	clientID, err := h.getOrCreateClientID(c)
+	if err != nil {
+		logctx.From(h.ctx).Error("Failed to get client ID", zap.Error(err))
+		InternalServerError(c, "Failed to identify client")
+		return
+	}
+	
 	client, storageInstance, err := h.createTelegramClientForUser(clientID)
 	if err != nil {
 		logctx.From(h.ctx).Error("Failed to create telegram client", zap.Error(err))
@@ -527,8 +535,14 @@ func (h *ChatHandler) ExportChatMessages(c *gin.Context) {
 		}
 	}
 
-	// 使用安全的客户端IP获取用户命名空间
-	clientID := util.SafeClientID(c.ClientIP())
+	// 优化客户端识别机制：优先使用session，回退到IP
+	clientID, err := h.getOrCreateClientID(c)
+	if err != nil {
+		logctx.From(h.ctx).Error("Failed to get client ID", zap.Error(err))
+		InternalServerError(c, "Failed to identify client")
+		return
+	}
+	
 	client, storageInstance, err := h.createTelegramClientForUser(clientID)
 	if err != nil {
 		logctx.From(h.ctx).Error("Failed to create telegram client", zap.Error(err))
@@ -626,8 +640,14 @@ func (h *ChatHandler) ExportChatUsers(c *gin.Context) {
 		return
 	}
 
-	// 使用安全的客户端IP获取用户命名空间
-	clientID := util.SafeClientID(c.ClientIP())
+	// 优化客户端识别机制：优先使用session，回退到IP
+	clientID, err := h.getOrCreateClientID(c)
+	if err != nil {
+		logctx.From(h.ctx).Error("Failed to get client ID", zap.Error(err))
+		InternalServerError(c, "Failed to identify client")
+		return
+	}
+	
 	client, storageInstance, err := h.createTelegramClientForUser(clientID)
 	if err != nil {
 		logctx.From(h.ctx).Error("Failed to create telegram client", zap.Error(err))
@@ -773,6 +793,45 @@ func (h *ChatHandler) createOutputPath(customPath, defaultFilename string) (stri
 
 	// 生成完整的文件路径
 	return filepath.Join(basePath, defaultFilename), nil
+}
+
+// getOrCreateClientID 优化的客户端识别机制
+func (h *ChatHandler) getOrCreateClientID(c *gin.Context) (string, error) {
+	const clientIDCookie = "tdl_client_id"
+	const clientIDHeader = "X-TDL-Client-ID"
+	
+	// 1. 优先从Cookie获取客户端ID
+	if clientID, err := c.Cookie(clientIDCookie); err == nil && clientID != "" {
+		return clientID, nil
+	}
+	
+	// 2. 从Header获取客户端ID
+	if clientID := c.GetHeader(clientIDHeader); clientID != "" {
+		// 设置cookie以便后续请求使用
+		c.SetCookie(clientIDCookie, clientID, 30*24*3600, "/", "", false, true) // 30天
+		return clientID, nil
+	}
+	
+	// 3. 生成新的客户端ID
+	clientID, err := h.generateClientID()
+	if err != nil {
+		// 如果生成失败，回退到IP地址
+		logctx.From(h.ctx).Warn("Failed to generate client ID, fallback to IP", zap.Error(err))
+		return util.SafeClientID(c.ClientIP()), nil
+	}
+	
+	// 4. 设置cookie并返回
+	c.SetCookie(clientIDCookie, clientID, 30*24*3600, "/", "", false, true) // 30天
+	return clientID, nil
+}
+
+// generateClientID 生成唯一的客户端ID
+func (h *ChatHandler) generateClientID() (string, error) {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("generate random bytes: %w", err)
+	}
+	return "client_" + hex.EncodeToString(bytes), nil
 }
 
 // GetDefaultDownloadPath 获取默认下载路径

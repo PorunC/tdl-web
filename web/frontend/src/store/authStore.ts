@@ -31,6 +31,7 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  isInitialized: boolean // 新增：标记认证状态是否已初始化
   loginSession: LoginSession | null
   
   // 基础认证方法
@@ -59,26 +60,35 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      isInitialized: false, // 初始时未初始化
       loginSession: null,
 
       checkAuthStatus: async () => {
         try {
+          set({ isLoading: true })
           const response = await ApiService.checkAuthStatus()
           if (response.data.success && response.data.data.authenticated) {
             set({ 
               user: response.data.data.user,
-              isAuthenticated: true 
+              isAuthenticated: true,
+              isInitialized: true,
+              isLoading: false
             })
           } else {
             set({ 
               user: null,
-              isAuthenticated: false 
+              isAuthenticated: false,
+              isInitialized: true,
+              isLoading: false
             })
           }
         } catch (error) {
+          console.warn('Auth status check failed:', error)
           set({ 
             user: null,
-            isAuthenticated: false 
+            isAuthenticated: false,
+            isInitialized: true,
+            isLoading: false
           })
         }
       },
@@ -92,6 +102,7 @@ export const useAuthStore = create<AuthState>()(
           set({ 
             user: null, 
             isAuthenticated: false,
+            isInitialized: true,
             loginSession: null
           })
         }
@@ -214,7 +225,9 @@ export const useAuthStore = create<AuthState>()(
       name: 'tdl-auth-storage',
       partialize: (state) => ({ 
         user: state.user,
-        isAuthenticated: state.isAuthenticated 
+        // 不持久化认证状态，每次都重新验证
+        isAuthenticated: false,
+        isInitialized: false
       }),
     }
   )

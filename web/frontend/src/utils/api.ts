@@ -10,10 +10,28 @@ export const api = axios.create({
   },
 })
 
+// 生成或获取客户端ID
+function getOrCreateClientID(): string {
+  const STORAGE_KEY = 'tdl_client_id'
+  let clientID = localStorage.getItem(STORAGE_KEY)
+  
+  if (!clientID) {
+    // 生成新的客户端ID
+    clientID = 'client_' + Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    localStorage.setItem(STORAGE_KEY, clientID)
+  }
+  
+  return clientID
+}
+
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 可以在这里添加认证token
+    // 添加客户端ID到请求头
+    const clientID = getOrCreateClientID()
+    config.headers['X-TDL-Client-ID'] = clientID
     return config
   },
   (error) => {

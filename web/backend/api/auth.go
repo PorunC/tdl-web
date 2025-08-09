@@ -228,8 +228,24 @@ func (h *AuthHandler) getUserID(c *gin.Context) string {
 	return clientID
 }
 
-// getClientID 获取文件系统安全的客户端标识符
+// getClientID 获取客户端ID，与ChatHandler保持一致的识别机制
 func (h *AuthHandler) getClientID(c *gin.Context) string {
+	const clientIDCookie = "tdl_client_id"
+	const clientIDHeader = "X-TDL-Client-ID"
+	
+	// 1. 优先从Cookie获取客户端ID
+	if clientID, err := c.Cookie(clientIDCookie); err == nil && clientID != "" {
+		return clientID
+	}
+	
+	// 2. 从Header获取客户端ID
+	if clientID := c.GetHeader(clientIDHeader); clientID != "" {
+		// 设置cookie以便后续请求使用
+		c.SetCookie(clientIDCookie, clientID, 30*24*3600, "/", "", false, true) // 30天
+		return clientID
+	}
+	
+	// 3. 回退到IP地址（保持向后兼容）
 	return util.SafeClientID(c.ClientIP())
 }
 

@@ -72,12 +72,38 @@ const ChatPage = () => {
   // Tab状态管理
   const [activeTab, setActiveTab] = useState('list')
   
-  // 用于跟踪是否是首次渲染
+  // 用于跟踪是否是首次渲染和防重复调用
   const isFirstRender = useRef(true)
+  const hasInitialized = useRef(false)
+  const fetchChatListLock = useRef(false) // 专门用于fetchChatList的锁
+  const [initialized, setInitialized] = useState(false)
 
+  // 优化初始化逻辑，使用独立的状态管理
   useEffect(() => {
-    fetchChatList(1, searchTerm) // 初始加载页面从第1页开始
-    fetchDefaultPath() // 获取默认下载路径
+    const initializePage = async () => {
+      // 防止React.StrictMode重复调用
+      if (hasInitialized.current) {
+        return
+      }
+      
+      hasInitialized.current = true
+      
+      try {
+        // 先获取默认路径（非阻塞）
+        fetchDefaultPath().catch(err => {
+          console.warn('获取默认路径失败，将使用空值:', err)
+        })
+        
+        // 再获取聊天列表（主要功能）- 不使用全局loading锁
+        await fetchChatList(1, '')
+        setInitialized(true)
+      } catch (error) {
+        console.error('页面初始化失败:', error)
+        setInitialized(true) // 即使失败也标记为已初始化
+      }
+    }
+    
+    initializePage()
   }, [])
 
   const fetchDefaultPath = async () => {
@@ -92,17 +118,28 @@ const ChatPage = () => {
         setUsersOutputPath(path)
       }
     } catch (error: any) {
-      console.warn('获取默认下载路径失败:', error.response?.data?.message || error.message)
+      // 降低错误级别，不显示toast，避免影响主要功能
+      console.warn('获取默认下载路径失败，将使用系统默认值:', error.response?.data?.message || error.message)
+      // 设置一个合理的默认值
+      const fallbackPath = process.platform === 'win32' ? 'C:\\Users\\Downloads' : '~/Downloads'
+      setDefaultPath(fallbackPath)
+      setExportOutputPath(fallbackPath)
+      setUsersOutputPath(fallbackPath)
     } finally {
       setPathLoading(false)
     }
   }
 
-  // 搜索防抖
+  // 搜索防抖 - 移除initialized依赖项，避免重复触发
   useEffect(() => {
-    // 跳过首次渲染，避免重复API调用
+    // 跳过首次渲染
     if (isFirstRender.current) {
       isFirstRender.current = false
+      return
+    }
+    
+    // 只有在已初始化时才执行搜索
+    if (!initialized) {
       return
     }
     
@@ -112,10 +149,17 @@ const ChatPage = () => {
     }, 500)
     
     return () => clearTimeout(timer)
-  }, [searchTerm])
+  }, [searchTerm]) // 移除initialized依赖项
 
   const fetchChatList = async (page: number = currentPage, search: string = searchTerm) => {
+    // 使用专门的锁防止fetchChatList重复调用
+    if (fetchChatListLock.current) {
+      console.log('fetchChatList调用已在进行中，跳过重复请求')
+      return
+    }
+    
     try {
+      fetchChatListLock.current = true
       setLoading(true)
       const response = await ApiService.getChatList({
         filter,
@@ -131,10 +175,13 @@ const ChatPage = () => {
         setDialogs(dialogsData)
         setTotalCount(response.data.data.total_count || 0)
         setTotalPages(response.data.data.total_pages || 1)
-        setCurrentPage(response.data.data.page || 1)
+        setCurrentPage(response.data.data.page || page) // 使用传入的page参数
       } else {
         // API 调用成功但业务逻辑失败，确保 dialogs 为空数组
         setDialogs([])
+        setTotalCount(0)
+        setTotalPages(1)
+        setCurrentPage(1)
         toast({
           title: '获取聊天列表失败',
           description: response.data.message,
@@ -144,22 +191,38 @@ const ChatPage = () => {
     } catch (error: any) {
       // 发生异常时确保 dialogs 为空数组
       setDialogs([])
-      toast({
-        title: '获取聊天列表失败',
-        description: error.response?.data?.message || '网络错误',
-        variant: 'destructive'
-      })
+      setTotalCount(0)
+      setTotalPages(1)
+      setCurrentPage(1)
+      
+      // 根据错误类型提供不同的处理
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      console.error('获取聊天列表失败:', errorMessage, error)
+      
+      // 只有在非认证错误时才显示toast
+      if (!errorMessage.includes('authorized') && !errorMessage.includes('login')) {
+        toast({
+          title: '获取聊天列表失败',
+          description: errorMessage,
+          variant: 'destructive'
+        })
+      }
     } finally {
       setLoading(false)
+      fetchChatListLock.current = false
     }
   }
 
   const handlePageChange = (page: number) => {
+    if (loading || fetchChatListLock.current) return // 防止重复请求
+    
     setCurrentPage(page)
     fetchChatList(page, searchTerm)
   }
 
   const handlePageSizeChange = (size: number) => {
+    if (loading || fetchChatListLock.current) return // 防止重复请求
+    
     setPageSize(size)
     setCurrentPage(1)
     fetchChatList(1, searchTerm)
@@ -360,7 +423,7 @@ const ChatPage = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left p-2">ID</th>
-                      <th className="text-left p-2">类型</th>
+                      <th className="text-left p-2 w-20">类型</th>
                       <th className="text-left p-2">名称</th>
                       <th className="text-left p-2">用户名</th>
                       <th className="text-left p-2">主题</th>
