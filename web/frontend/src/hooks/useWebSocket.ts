@@ -10,10 +10,13 @@ interface WebSocketMessage {
 
 export function useWebSocket(enabled: boolean) {
   const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { updateTask } = useTaskStore()
 
   const connect = useCallback(() => {
-    if (!enabled || wsRef.current?.readyState === WebSocket.OPEN) {
+    // 优化连接逻辑，避免重复连接
+    if (!enabled) return
+    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return
     }
 
@@ -38,9 +41,12 @@ export function useWebSocket(enabled: boolean) {
 
     ws.onclose = () => {
       console.log('WebSocket disconnected')
-      // 重连机制
-      if (enabled) {
-        setTimeout(() => connect(), 3000)
+      // 优化重连机制，避免立即重连导致的重复检查
+      if (enabled && !reconnectTimeoutRef.current) {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = null
+          connect()
+        }, 3000)
       }
     }
 
@@ -52,13 +58,33 @@ export function useWebSocket(enabled: boolean) {
   const handleMessage = useCallback((message: WebSocketMessage) => {
     switch (message.type) {
       case 'progress':
-        updateTask(message.data.task_id, {
-          progress: message.data.progress,
-          speed: message.data.speed,
-          eta: message.data.eta,
-          transferred: message.data.transferred,
-          total: message.data.total,
-          status: 'running'
+        const progressData = message.data
+        updateTask(progressData.task_id, {
+          progress: progressData.progress,
+          speed: progressData.speed,
+          eta: progressData.eta,
+          transferred: progressData.transferred,
+          total: progressData.total,
+          status: 'running',
+          // Update file progress if available
+          ...(progressData.file_progress && {
+            fileProgress: {
+              currentFile: progressData.file_progress.current_file,
+              fileIndex: progressData.file_progress.file_index,
+              totalFiles: progressData.file_progress.total_files,
+              fileProgress: progressData.file_progress.file_progress
+            }
+          }),
+          // Update statistics if available
+          ...(progressData.statistics && {
+            statistics: {
+              filesTotal: progressData.statistics.files_total || 0,
+              filesCompleted: progressData.statistics.files_completed || 0,
+              filesSkipped: progressData.statistics.files_skipped || 0,
+              filesFailed: progressData.statistics.files_failed || 0,
+              errors: progressData.statistics.errors || []
+            }
+          })
         })
         break
 
@@ -106,14 +132,27 @@ export function useWebSocket(enabled: boolean) {
   useEffect(() => {
     if (enabled) {
       connect()
-    } else if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
+    } else {
+      // 清理连接和定时器
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
     }
 
     return () => {
+      // 组件卸载时清理资源
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
       if (wsRef.current) {
         wsRef.current.close()
+        wsRef.current = null
       }
     }
   }, [enabled, connect])

@@ -64,6 +64,18 @@ export const useAuthStore = create<AuthState>()(
       loginSession: null,
 
       checkAuthStatus: async () => {
+        const currentState = get()
+        
+        // 如果最近已经检查过且状态有效，跳过检查
+        const now = Date.now()
+        const lastCheck = (currentState as any).lastAuthCheck || 0
+        const oneMinute = 60 * 1000 // 1分钟内不重复检查
+        
+        if (currentState.isInitialized && currentState.isAuthenticated && (now - lastCheck < oneMinute)) {
+          console.log('Auth status recently checked, skipping')
+          return
+        }
+        
         try {
           set({ isLoading: true })
           const response = await ApiService.checkAuthStatus()
@@ -225,10 +237,27 @@ export const useAuthStore = create<AuthState>()(
       name: 'tdl-auth-storage',
       partialize: (state) => ({ 
         user: state.user,
-        // 不持久化认证状态，每次都重新验证
-        isAuthenticated: false,
-        isInitialized: false
+        // 优化：短时间内持久化认证状态，避免频繁检查
+        isAuthenticated: state.isAuthenticated,
+        isInitialized: state.isInitialized,
+        // 添加时间戳用于验证有效性
+        lastAuthCheck: Date.now()
       }),
+      // 添加状态恢复逻辑
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const now = Date.now()
+          const lastCheck = (state as any).lastAuthCheck || 0
+          const fiveMinutes = 5 * 60 * 1000 // 5分钟有效期
+          
+          // 如果超过5分钟，重置认证状态
+          if (now - lastCheck > fiveMinutes) {
+            state.isAuthenticated = false
+            state.isInitialized = false
+            state.user = null
+          }
+        }
+      }
     }
   )
 )
