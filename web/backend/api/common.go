@@ -61,6 +61,26 @@ func InternalServerError(c *gin.Context, message string) {
 	})
 }
 
+// 内部服务器错误响应带详细错误信息
+func InternalError(c *gin.Context, message string, err error) {
+	logctx.From(c.Request.Context()).Error("API Error", 
+		zap.String("message", message),
+		zap.Error(err))
+	
+	c.JSON(http.StatusInternalServerError, Response{
+		Success: false,
+		Error:   message + ": " + err.Error(),
+	})
+}
+
+// 未找到错误响应
+func NotFoundError(c *gin.Context, message string) {
+	c.JSON(http.StatusNotFound, Response{
+		Success: false,
+		Error:   message,
+	})
+}
+
 // 获取分页参数
 func GetPagination(c *gin.Context) (offset, limit int) {
 	// 简化实现

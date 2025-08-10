@@ -115,8 +115,20 @@ func (s *Server) setupRoutes() {
 			settingsGroup.POST("/reset", settingsHandler.ResetSettings) // 重置设置
 		}
 
-		// 简化其他路由，暂时注释掉
-		// TODO: 修复其他处理器的接口兼容性问题
+		// 下载管理相关
+		downloadGroup := apiV1.Group("/download")
+		{
+			downloadHandler := api.NewDownloadHandler(s.ctx, s.kvd, s.wsHub)
+			downloadGroup.GET("/chats", downloadHandler.GetChats)          // 获取可下载的聊天
+			downloadGroup.POST("/start", downloadHandler.StartDownload)     // 开始下载任务
+			downloadGroup.POST("/import", downloadHandler.ImportFromJson)   // 从JSON文件导入下载
+			downloadGroup.GET("/tasks", downloadHandler.GetTasks)          // 获取下载任务列表
+			downloadGroup.GET("/tasks/:id", downloadHandler.GetTaskDetails) // 获取任务详情
+			downloadGroup.POST("/tasks/:id/pause", downloadHandler.PauseTask)   // 暂停任务
+			downloadGroup.POST("/tasks/:id/resume", downloadHandler.ResumeTask) // 恢复任务
+			downloadGroup.POST("/tasks/:id/retry", downloadHandler.RetryTask)   // 重试任务
+			downloadGroup.DELETE("/tasks/:id", downloadHandler.CancelTask)     // 取消/删除任务
+		}
 	}
 
 	// WebSocket端点

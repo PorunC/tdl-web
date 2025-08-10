@@ -10,6 +10,9 @@ import (
 	tsize "github.com/kopoli/go-terminal-size"
 )
 
+// Func represents a progress callback function that takes current and total bytes
+type Func func(current, total int64)
+
 func New(formatter progress.UnitsFormatter) progress.Writer {
 	pw := progress.NewWriter()
 	pw.SetAutoStop(false)
