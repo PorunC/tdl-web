@@ -93,6 +93,16 @@ export class ApiService {
     chatId: string
     fileTypes?: string[]
     filter?: string
+    // Enhanced download options
+    downloadPath?: string
+    urls?: string[]
+    template?: string
+    include?: string[]
+    exclude?: string[]
+    takeout?: boolean
+    continue?: boolean
+    desc?: boolean
+    taskId?: string
   }) {
     return api.post('/download/start', data)
   }
@@ -103,6 +113,42 @@ export class ApiService {
 
   static async cancelDownloadTask(taskId: string) {
     return api.delete(`/download/tasks/${taskId}`)
+  }
+
+  static async pauseDownloadTask(taskId: string) {
+    return api.post(`/download/tasks/${taskId}/pause`)
+  }
+
+  static async resumeDownloadTask(taskId: string) {
+    return api.post(`/download/tasks/${taskId}/resume`)
+  }
+
+  static async retryDownloadTask(taskId: string) {
+    return api.post(`/download/tasks/${taskId}/retry`)
+  }
+
+  static async getDownloadTaskDetails(taskId: string) {
+    return api.get(`/download/tasks/${taskId}`)
+  }
+
+  static async startDownloadFromJson(data: {
+    chatId: string
+    downloadPath: string
+    template?: string
+    jsonData: any
+    selectedMessageIds: number[]
+    taskId: string
+  }) {
+    // Convert camelCase to snake_case for backend API
+    const requestData = {
+      chat_id: data.chatId,
+      download_path: data.downloadPath,
+      template: data.template,
+      json_data: data.jsonData,
+      selected_message_ids: data.selectedMessageIds,
+      task_id: data.taskId
+    }
+    return api.post('/download/import', requestData)
   }
 
   // 上传相关
