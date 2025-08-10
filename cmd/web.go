@@ -5,8 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	"github.com/iyear/tdl/core/logctx"
+	"github.com/iyear/tdl/core/util/logutil"
 	"github.com/iyear/tdl/pkg/consts"
 	"github.com/iyear/tdl/pkg/kv"
 	"github.com/iyear/tdl/web/backend"
@@ -20,7 +22,13 @@ func NewWeb() *cobra.Command {
 		Short:   "Start web interface",
 		GroupID: groupTools.ID,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := logctx.Named(cmd.Context(), "web")
+			// 为web进程创建独立的日志文件，避免与CLI冲突
+			level := zap.InfoLevel
+			if viper.GetBool("debug") {
+				level = zap.DebugLevel
+			}
+			webLogger := logutil.New(level, filepath.Join(consts.LogPath, "web.log"))
+			ctx := logctx.With(cmd.Context(), webLogger)
 
 			// 创建默认的Bolt存储配置
 			webBoltStorage := map[string]string{
