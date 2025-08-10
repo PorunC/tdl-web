@@ -68,7 +68,7 @@ export function ImportChatDialog({ trigger }: ImportChatDialogProps) {
       setDownloadPath(settings.defaultPath || './downloads')
     }
     if (!template) {
-      setTemplate(settings.defaultTemplate || '{DialogID}_{MessageID}_{FileName}')
+      setTemplate(settings.defaultTemplate || '{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}')
     }
   }, [settings, downloadPath, template])
 
@@ -344,7 +344,7 @@ export function ImportChatDialog({ trigger }: ImportChatDialogProps) {
   const resetForm = () => {
     setImportData(null)
     setDownloadPath(settings.defaultPath || './downloads')
-    setTemplate(settings.defaultTemplate || '{DialogID}_{MessageID}_{FileName}')
+    setTemplate(settings.defaultTemplate || '{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}')
     setOnlySelected(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -523,7 +523,7 @@ export function ImportChatDialog({ trigger }: ImportChatDialogProps) {
                     id="importTemplate"
                     value={template}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTemplate(e.target.value)}
-                    placeholder="{DialogID}_{MessageID}_{FileName}"
+                    placeholder="{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}"
                   />
                 </div>
               </div>

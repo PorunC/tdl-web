@@ -281,10 +281,10 @@ export function QuickDownloadDialog({ trigger }: QuickDownloadDialogProps) {
               id="template"
               value={template}
               onChange={(e) => setTemplate(e.target.value)}
-              placeholder="{DialogID}_{MessageID}_{FileName}"
+              placeholder="{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}"
             />
             <p className="text-xs text-muted-foreground">
-              可用变量: {'{DialogID}'}, {'{MessageID}'}, {'{FileName}'}, {'{FileSize}'}
+              可用变量: {'{{ .DialogID }}'}, {'{{ .MessageID }}'}, {'{{ .FileName }}'}, {'{{ .FileSize }}'}, {'{{ filenamify .FileName }}'}
             </p>
           </div>
 

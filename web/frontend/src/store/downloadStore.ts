@@ -2,6 +2,26 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ApiService } from '@/utils/api'
 
+// 迁移旧模板格式到新格式
+function migrateTemplateFormat(template: string): string {
+  if (!template || template.includes('{{')) {
+    return template // 已经是新格式或空
+  }
+  
+  // 转换常见的模板变量
+  let converted = template
+  converted = converted.replace(/\{DialogID\}/g, '{{ .DialogID }}')
+  converted = converted.replace(/\{MessageID\}/g, '{{ .MessageID }}')
+  converted = converted.replace(/\{FileName\}/g, '{{ filenamify .FileName }}')
+  converted = converted.replace(/\{FileSize\}/g, '{{ .FileSize }}')
+  converted = converted.replace(/\{MessageDate\}/g, '{{ .MessageDate }}')
+  converted = converted.replace(/\{DownloadDate\}/g, '{{ .DownloadDate }}')
+  converted = converted.replace(/\{FileCaption\}/g, '{{ .FileCaption }}')
+  
+  console.log(`Template migrated: "${template}" -> "${converted}"`)
+  return converted
+}
+
 export interface DownloadSettings {
   defaultPath: string
   defaultTemplate: string
@@ -29,7 +49,7 @@ interface DownloadState {
 
 const defaultSettings: DownloadSettings = {
   defaultPath: '',
-  defaultTemplate: '{DialogID}_{MessageID}_{FileName}',
+  defaultTemplate: '{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}',
   fileTypes: ['photo', 'video', 'document', 'audio'],
   filters: ['true'],
   concurrency: 4,

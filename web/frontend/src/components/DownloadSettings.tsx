@@ -134,10 +134,10 @@ export function DownloadSettings({ trigger }: DownloadSettingsProps) {
                     ...prev,
                     defaultTemplate: e.target.value
                   }))}
-                  placeholder="{DialogID}_{MessageID}_{FileName}"
+                  placeholder="{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}"
                 />
                 <p className="text-xs text-muted-foreground">
-                  可用变量: {'{DialogID}'}, {'{MessageID}'}, {'{FileName}'}, {'{FileSize}'}
+                  可用变量: {'{{ .DialogID }}'}, {'{{ .MessageID }}'}, {'{{ .FileName }}'}, {'{{ .FileSize }}'}, {'{{ filenamify .FileName }}'}
                 </p>
               </div>
               
