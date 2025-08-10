@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import ChatPage from './pages/ChatPage'
 import DownloadPage from './pages/DownloadPage'
+import ForwardPage from './pages/ForwardPage'
 import SettingsPage from './pages/SettingsPage'
 import { useAuthGuard } from './hooks/useAuth'
 import { useWebSocket } from './hooks/useWebSocket'
@@ -37,6 +38,7 @@ function App() {
             <Route path="/dashboard" element={<Navigate to="/settings" replace />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/download" element={<DownloadPage />} />
+            <Route path="/forward" element={<ForwardPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/settings" replace />} />
           </Routes>

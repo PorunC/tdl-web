@@ -242,4 +242,31 @@ export class ApiService {
   static async updateSettings(settings: any) {
     return api.put('/settings', settings)
   }
+
+  // 转发相关
+  static async startForward(data: {
+    from_sources: string[]
+    to_chat: string
+    edit_text?: string
+    mode?: string
+    silent?: boolean
+    dry_run?: boolean
+    single?: boolean
+    desc?: boolean
+    task_id?: string
+  }) {
+    return api.post('/forward/start', data)
+  }
+
+  static async getForwardTasks() {
+    return api.get('/forward/tasks')
+  }
+
+  static async getForwardTaskDetails(taskId: string) {
+    return api.get(`/forward/tasks/${taskId}`)
+  }
+
+  static async cancelForwardTask(taskId: string) {
+    return api.delete(`/forward/tasks/${taskId}`)
+  }
 }

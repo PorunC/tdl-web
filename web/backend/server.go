@@ -128,6 +128,16 @@ func (s *Server) setupRoutes() {
 			downloadGroup.POST("/tasks/:id/retry", downloadHandler.RetryTask)   // 重试任务
 			downloadGroup.DELETE("/tasks/:id", downloadHandler.CancelTask)     // 取消/删除任务
 		}
+
+		// 转发管理相关
+		forwardGroup := apiV1.Group("/forward")
+		{
+			forwardHandler := api.NewForwardHandler(s.ctx, s.kvd, s.wsHub)
+			forwardGroup.POST("/start", forwardHandler.StartForward)           // 开始转发任务
+			forwardGroup.GET("/tasks", forwardHandler.GetForwardTasks)         // 获取转发任务列表
+			forwardGroup.GET("/tasks/:id", forwardHandler.GetForwardTaskDetails) // 获取转发任务详情
+			forwardGroup.DELETE("/tasks/:id", forwardHandler.CancelForwardTask)  // 取消转发任务
+		}
 	}
 
 	// WebSocket端点
