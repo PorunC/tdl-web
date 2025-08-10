@@ -121,7 +121,7 @@ const ChatPage = () => {
       // 降低错误级别，不显示toast，避免影响主要功能
       console.warn('获取默认下载路径失败，将使用系统默认值:', error.response?.data?.message || error.message)
       // 设置一个合理的默认值
-      const fallbackPath = process.platform === 'win32' ? 'C:\\Users\\Downloads' : '~/Downloads'
+      const fallbackPath = 'C:\\Downloads' // Simplified fallback path
       setDefaultPath(fallbackPath)
       setExportOutputPath(fallbackPath)
       setUsersOutputPath(fallbackPath)

@@ -7,25 +7,17 @@ import ChatPage from './pages/ChatPage'
 import DownloadPage from './pages/DownloadPage'
 import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
-import { useAuthStore } from './store/authStore'
-import { useEffect } from 'react'
+import { useAuthGuard } from './hooks/useAuth'
 import { useWebSocket } from './hooks/useWebSocket'
 
 function App() {
-  const { isAuthenticated, isInitialized, isLoading, checkAuthStatus } = useAuthStore()
-  
-  // 初始化认证状态
-  useEffect(() => {
-    if (!isInitialized) {
-      checkAuthStatus()
-    }
-  }, [checkAuthStatus, isInitialized])
+  const { isAuthenticated, shouldShowLoader } = useAuthGuard()
 
   // 建立WebSocket连接（仅在已认证时）
   useWebSocket(isAuthenticated)
 
   // 等待认证状态初始化完成
-  if (!isInitialized || isLoading) {
+  if (shouldShowLoader) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
