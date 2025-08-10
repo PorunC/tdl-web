@@ -459,6 +459,32 @@ func (h *DownloadHandler) generateClientID() (string, error) {
 	return "client_" + hex.EncodeToString(bytes), nil
 }
 
+// convertTemplateFormat 将前端模板格式转换为Go template格式
+// 从 {DialogID} 转换为 {{ .DialogID }}
+func (h *DownloadHandler) convertTemplateFormat(template string) string {
+	if template == "" {
+		return "{{ .DialogID }}_{{ .MessageID }}_{{ filenamify .FileName }}"
+	}
+	
+	// 如果已经是正确的Go模板格式，直接返回
+	if strings.Contains(template, "{{") && strings.Contains(template, "}}") {
+		return template
+	}
+	
+	// 转换常见的模板变量
+	converted := template
+	converted = strings.ReplaceAll(converted, "{DialogID}", "{{ .DialogID }}")
+	converted = strings.ReplaceAll(converted, "{MessageID}", "{{ .MessageID }}")
+	converted = strings.ReplaceAll(converted, "{FileName}", "{{ filenamify .FileName }}")
+	converted = strings.ReplaceAll(converted, "{FileSize}", "{{ .FileSize }}")
+	converted = strings.ReplaceAll(converted, "{MessageDate}", "{{ .MessageDate }}")
+	converted = strings.ReplaceAll(converted, "{DownloadDate}", "{{ .DownloadDate }}")
+	converted = strings.ReplaceAll(converted, "{FileCaption}", "{{ .FileCaption }}")
+	
+	fmt.Printf("Template conversion: '%s' -> '%s'\n", template, converted)
+	return converted
+}
+
 // createTelegramClientForUser 为特定用户创建Telegram客户端，复制ChatHandler的逻辑
 func (h *DownloadHandler) createTelegramClientForUser(clientID string) (*telegram.Client, storage.Storage, error) {
 	// 获取Telegram ID
@@ -642,7 +668,11 @@ func (h *DownloadHandler) ImportFromJson(c *gin.Context) {
 		// 调用真实的tdl CLI下载功能
 		fmt.Printf("Starting download with temp file: %s\n", tempFile)
 		fmt.Printf("Download path: %s\n", req.DownloadPath)
-		fmt.Printf("Template: %s\n", req.Template)
+		fmt.Printf("Original Template: %s\n", req.Template)
+		
+		// 自动转换模板格式：从 {xxx} 转换为 {{ .xxx }}
+		template := h.convertTemplateFormat(req.Template)
+		fmt.Printf("Converted Template: %s\n", template)
 		
 		// 获取客户端ID
 		clientID, err := h.getClientID(c)
@@ -659,7 +689,7 @@ func (h *DownloadHandler) ImportFromJson(c *gin.Context) {
 		}
 		fmt.Printf("Using clientID: %s\n", clientID)
 		
-		err = h.executeRealDownload(taskCtx, req, tempFile, clientID)
+		err = h.executeRealDownload(taskCtx, req, tempFile, clientID, template)
 		if err != nil {
 			fmt.Printf("Download error: %v\n", err)
 			h.updateTaskStatus(req.TaskID, "error", err.Error(), 0)
@@ -710,15 +740,15 @@ func (h *DownloadHandler) ImportFromJson(c *gin.Context) {
 }
 
 // executeRealDownload 执行真实的下载任务，使用CLI的完整功能
-func (h *DownloadHandler) executeRealDownload(ctx context.Context, req ImportRequest, tempFile string, clientID string) error {
+func (h *DownloadHandler) executeRealDownload(ctx context.Context, req ImportRequest, tempFile string, clientID string, template string) error {
 	fmt.Printf("executeRealDownload: Starting real CLI download for clientID: %s\n", clientID)
 	
 	// 使用与Chat页面相同的认证机制
-	return h.tRunWithFiles(ctx, req, tempFile, clientID)
+	return h.tRunWithFiles(ctx, req, tempFile, clientID, template)
 }
 
 // tRunWithFiles 使用与Chat页面相同的认证机制来执行下载
-func (h *DownloadHandler) tRunWithFiles(ctx context.Context, req ImportRequest, tempFile string, clientID string) error {
+func (h *DownloadHandler) tRunWithFiles(ctx context.Context, req ImportRequest, tempFile string, clientID string, template string) error {
 	fmt.Printf("tRunWithFiles: Creating authenticated client for user\n")
 	
 	// 使用与Chat页面完全相同的客户端创建逻辑
@@ -741,7 +771,7 @@ func (h *DownloadHandler) tRunWithFiles(ctx context.Context, req ImportRequest, 
 			Dir:         req.DownloadPath,
 			RewriteExt:  false,
 			SkipSame:    false,
-			Template:    req.Template,
+			Template:    template, // 使用转换后的模板
 			URLs:        []string{}, // JSON导入不使用URL
 			Files:       []string{tempFile}, // 使用临时JSON文件
 			Include:     []string{},
