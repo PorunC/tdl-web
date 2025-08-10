@@ -62,7 +62,7 @@ const ForwardPage = () => {
   const [silent, setSilent] = useState(false)
   const [dryRun, setDryRun] = useState(false)
   const [single, setSingle] = useState(false)
-  const [desc, setDesc] = useState(false)
+  const [forwardOrder, setForwardOrder] = useState<'chronological' | 'reverse'>('chronological')
 
   // 任务管理状态
   const [tasks, setTasks] = useState<ForwardTask[]>([])
@@ -162,7 +162,7 @@ const ForwardPage = () => {
       silent,
       dry_run: dryRun,
       single,
-      desc,
+      desc: forwardOrder === 'reverse',
       task_id: `forward_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`
     }
 
@@ -416,41 +416,73 @@ const ForwardPage = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label>转发选项</Label>
-                    <div className="space-y-2">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={silent}
-                          onChange={(e) => setSilent(e.target.checked)}
-                        />
-                        <span className="text-sm">静默转发（不发送通知）</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={dryRun}
-                          onChange={(e) => setDryRun(e.target.checked)}
-                        />
-                        <span className="text-sm">测试模式（仅预览不实际转发）</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={single}
-                          onChange={(e) => setSingle(e.target.checked)}
-                        />
-                        <span className="text-sm">逐个转发（不分组发送）</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={desc}
-                          onChange={(e) => setDesc(e.target.checked)}
-                        />
-                        <span className="text-sm">倒序转发（从新到旧）</span>
-                      </label>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>转发顺序</Label>
+                      <div className="mt-2 space-y-3">
+                        <label className="flex items-start space-x-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="forwardOrder"
+                            value="reverse"
+                            checked={forwardOrder === 'reverse'}
+                            onChange={(e) => setForwardOrder(e.target.value as 'chronological' | 'reverse')}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">按原始顺序转发（从旧到新）</div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              按照消息的发送时间顺序转发，保持原始的时间流
+                            </p>
+                          </div>
+                        </label>
+                        <label className="flex items-start space-x-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="forwardOrder"
+                            value="chronological"
+                            checked={forwardOrder === 'chronological'}
+                            onChange={(e) => setForwardOrder(e.target.value as 'chronological' | 'reverse')}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">按时间倒序转发（从新到旧）</div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              最新的消息先转发，适合展示最新内容或回顾历史
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label>转发选项</Label>
+                      <div className="space-y-2">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={silent}
+                            onChange={(e) => setSilent(e.target.checked)}
+                          />
+                          <span className="text-sm">静默转发（不发送通知）</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={dryRun}
+                            onChange={(e) => setDryRun(e.target.checked)}
+                          />
+                          <span className="text-sm">测试模式（仅预览不实际转发）</span>
+                        </label>
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={single}
+                            onChange={(e) => setSingle(e.target.checked)}
+                          />
+                          <span className="text-sm">逐个转发（不分组发送）</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
