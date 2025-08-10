@@ -53,7 +53,7 @@ const ChatPage = () => {
 
   // Export form states
   const [exportType, setExportType] = useState<'time' | 'id' | 'last'>('last')
-  const [exportInput, setExportInput] = useState<string>('100')
+  const [exportInput, setExportInput] = useState<string>('1000')
   const [exportChat, setExportChat] = useState('')
   const [exportThread, setExportThread] = useState('')
   const [exportFilter, setExportFilter] = useState('true')
