@@ -2,10 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from './components/ui/toaster'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
 import ChatPage from './pages/ChatPage'
 import DownloadPage from './pages/DownloadPage'
-import UploadPage from './pages/UploadPage'
 import SettingsPage from './pages/SettingsPage'
 import { useAuthGuard } from './hooks/useAuth'
 import { useWebSocket } from './hooks/useWebSocket'
@@ -35,13 +33,12 @@ function App() {
       ) : (
         <Layout>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/" element={<Navigate to="/settings" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/settings" replace />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/download" element={<DownloadPage />} />
-            <Route path="/upload" element={<UploadPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/settings" replace />} />
           </Routes>
         </Layout>
       )}

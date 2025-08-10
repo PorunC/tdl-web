@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -88,26 +87,6 @@ type TaskInfo struct {
 	Config      map[string]interface{} `json:"config,omitempty"`
 }
 
-// GetChats 获取聊天列表
-func (h *DownloadHandler) GetChats(c *gin.Context) {
-	// 模拟聊天数据
-	chats := []map[string]interface{}{
-		{
-			"id":    "123456789",
-			"title": "测试群组",
-			"type":  "group",
-			"count": 100,
-		},
-		{
-			"id":    "987654321",
-			"title": "个人聊天",
-			"type":  "private",
-			"count": 50,
-		},
-	}
-
-	Success(c, chats)
-}
 
 // StartDownload 开始下载任务
 func (h *DownloadHandler) StartDownload(c *gin.Context) {
@@ -608,7 +587,7 @@ func (h *DownloadHandler) ImportFromJson(c *gin.Context) {
 		return
 	}
 
-	if err := ioutil.WriteFile(tempFile, jsonBytes, 0644); err != nil {
+	if err := os.WriteFile(tempFile, jsonBytes, 0644); err != nil {
 		InternalError(c, "Failed to create temporary file", err)
 		return
 	}

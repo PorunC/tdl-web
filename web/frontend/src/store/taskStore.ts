@@ -45,7 +45,7 @@ export interface FileProgress {
 
 export interface Task {
   id: string
-  type: 'download' | 'upload'
+  type: 'download'
   name: string
   status: 'pending' | 'running' | 'completed' | 'error' | 'cancelled' | 'paused'
   progress: number

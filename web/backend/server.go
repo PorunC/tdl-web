@@ -119,7 +119,6 @@ func (s *Server) setupRoutes() {
 		downloadGroup := apiV1.Group("/download")
 		{
 			downloadHandler := api.NewDownloadHandler(s.ctx, s.kvd, s.wsHub)
-			downloadGroup.GET("/chats", downloadHandler.GetChats)          // 获取可下载的聊天
 			downloadGroup.POST("/start", downloadHandler.StartDownload)     // 开始下载任务
 			downloadGroup.POST("/import", downloadHandler.ImportFromJson)   // 从JSON文件导入下载
 			downloadGroup.GET("/tasks", downloadHandler.GetTasks)          // 获取下载任务列表
