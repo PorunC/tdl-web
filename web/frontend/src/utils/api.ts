@@ -151,35 +151,6 @@ export class ApiService {
     return api.post('/download/import', requestData)
   }
 
-  // 上传相关
-  static async startUpload(data: {
-    chatId: string
-    files: FileList
-    caption?: string
-  }) {
-    const formData = new FormData()
-    formData.append('chatId', data.chatId)
-    if (data.caption) {
-      formData.append('caption', data.caption)
-    }
-    Array.from(data.files).forEach((file) => {
-      formData.append('files', file)
-    })
-
-    return api.post('/upload/start', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-  }
-
-  static async getUploadTasks() {
-    return api.get('/upload/tasks')
-  }
-
-  static async cancelUploadTask(taskId: string) {
-    return api.delete(`/upload/tasks/${taskId}`)
-  }
 
   // 聊天管理相关
   static async getChatList(options?: {
@@ -268,5 +239,26 @@ export class ApiService {
 
   static async cancelForwardTask(taskId: string) {
     return api.delete(`/forward/tasks/${taskId}`)
+  }
+
+  // 上传相关
+  static async startUpload(formData: FormData) {
+    return api.post('/upload/start', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  }
+
+  static async getUploadTasks() {
+    return api.get('/upload/tasks')
+  }
+
+  static async getUploadTaskDetails(taskId: string) {
+    return api.get(`/upload/tasks/${taskId}`)
+  }
+
+  static async cancelUploadTask(taskId: string) {
+    return api.delete(`/upload/tasks/${taskId}`)
   }
 }

@@ -138,6 +138,16 @@ func (s *Server) setupRoutes() {
 			forwardGroup.GET("/tasks/:id", forwardHandler.GetForwardTaskDetails) // 获取转发任务详情
 			forwardGroup.DELETE("/tasks/:id", forwardHandler.CancelForwardTask)  // 取消转发任务
 		}
+
+		// 上传管理相关
+		uploadGroup := apiV1.Group("/upload")
+		{
+			uploadHandler := api.NewUploadHandler(s.ctx, s.kvd, s.wsHub)
+			uploadGroup.POST("/start", uploadHandler.StartUpload)              // 开始上传任务
+			uploadGroup.GET("/tasks", uploadHandler.GetUploadTasks)            // 获取上传任务列表
+			uploadGroup.GET("/tasks/:id", uploadHandler.GetUploadTaskDetails)  // 获取上传任务详情
+			uploadGroup.DELETE("/tasks/:id", uploadHandler.CancelUploadTask)   // 取消上传任务
+		}
 	}
 
 	// WebSocket端点

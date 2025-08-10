@@ -14,6 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { to: '/settings', label: '设置' },
     { to: '/chat', label: '聊天管理' },
     { to: '/download', label: '下载管理' },
+    { to: '/upload', label: '上传管理' },
     { to: '/forward', label: '转发管理' },
   ]
 
